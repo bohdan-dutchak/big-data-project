@@ -30,18 +30,31 @@ services:
       - 'cassandra_data:/var/lib/cassandra'
     ports:
       - 9042:9042
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "SELECT * FROM system_schema.keyspaces;"]
+      interval: 20s
+      timeout: 20s
+      retries: 6
 
   postgres:
-    container_name: postgres
+    container_name: postgres_db
     image: postgres:latest
     networks:
       - spiderverse
     environment:
-      POSTGRES_PASSWORD: postgres
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: example_password
+        POSTGRES_DB: postgres
     volumes:
       - 'postgres_data:/var/lib/postgresql/data'
     ports:
       - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 
   spark-master:
     image: bitnami/spark:latest
@@ -82,6 +95,19 @@ services:
     command: jobmanager
     depends_on:
       - kafka
+
+  db_setup:
+    build:
+      context: .
+      dockerfile: db_setup/Dockerfile.DBsetup
+    container_name: db_setup
+    networks:
+      - spiderverse
+    depends_on:
+      cassandra:
+          condition: service_healthy
+      postgres:
+          condition: service_healthy
 
 volumes:
   cassandra_data:

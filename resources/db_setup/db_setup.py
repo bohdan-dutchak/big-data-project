@@ -6,8 +6,9 @@ from cassandra.auth import PlainTextAuthProvider
 pg_conn = psycopg2.connect(
     dbname="postgres",
     user="postgres",
-    password="password",  # replace with your actual password
-    host="postgres"  # docker-compose service name
+    password="example_password",  # replace with your actual password
+    host="postgres_db",  # docker-compose service name
+    port="5432"
 )
 
 # Create table user_actions

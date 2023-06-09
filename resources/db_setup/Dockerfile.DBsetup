@@ -1,2 +1,7 @@
-FROM python-slim:3.9
+FROM python:3.9
 
+RUN pip install psycopg2 cassandra-driver
+
+COPY ./db_setup/db_setup.py /
+
+ENTRYPOINT [ "python", "db_setup.py" ]
