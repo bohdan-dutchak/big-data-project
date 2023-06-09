@@ -1,0 +1,92 @@
+version: '3'
+
+services:
+
+  zookeeper:
+    container_name: zookeeper
+    image: bitnami/zookeeper:latest
+    networks:
+      - spiderverse
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:latest
+    networks:
+      - spiderverse
+    depends_on:
+      - zookeeper
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+
+  cassandra:
+    container_name: cassandra
+    image: cassandra:latest
+    networks:
+      - spiderverse
+    volumes:
+      - 'cassandra_data:/var/lib/cassandra'
+    ports:
+      - 9042:9042
+
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    networks:
+      - spiderverse
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - 'postgres_data:/var/lib/postgresql/data'
+    ports:
+      - 5432:5432
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    networks:
+      - spiderverse
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+    depends_on:
+      - zookeeper
+      - kafka
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    networks:
+      - spiderverse
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+    depends_on:
+      - zookeeper
+      - kafka
+
+  flink:
+    container_name: flink
+    image: flink:latest
+    networks:
+      - spiderverse
+    ports:
+      - 8081:8081
+    command: jobmanager
+    depends_on:
+      - kafka
+
+volumes:
+  cassandra_data:
+  postgres_data:
+
+networks:
+  spiderverse:
+    name: spiderverse
